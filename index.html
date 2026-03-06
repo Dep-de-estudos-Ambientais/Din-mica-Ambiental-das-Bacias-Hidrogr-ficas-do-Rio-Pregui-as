@@ -1,284 +1,116 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-<meta charset="UTF-8">
-<title>Bacia do Rio Preguiças - Mapa Interativo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bacia do Rio Preguiças - Mapa Interativo</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
-<style>
-
-body{
-margin:0;
-font-family:Arial, Helvetica, sans-serif;
-}
-
-.container{
-display:flex;
-height:100vh;
-}
-
-.sidebar{
-width:300px;
-background:#f4f4f4;
-padding:15px;
-overflow:auto;
-border-right:2px solid #ccc;
-}
-
-.sidebar h2{
-margin-top:0;
-color:#2c5530;
-}
-
-.layer-item{
-margin-bottom:10px;
-}
-
-#map{
-flex:1;
-}
-
-</style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
-<div class="container">
-
-<div class="sidebar">
-
-<h2>Bacia do Rio Preguiças</h2>
-
-<p>Mapa interativo das principais camadas ambientais da bacia hidrográfica.</p>
-
-<h3>Camadas</h3>
-
-<div class="layer-item">
-<input type="checkbox" id="chk_limite" checked> Limite da Bacia
-</div>
-
-<div class="layer-item">
-<input type="checkbox" id="chk_municipios"> Municípios
-</div>
-
-<div class="layer-item">
-<input type="checkbox" id="chk_rios" checked> Rios
-</div>
-
-<div class="layer-item">
-<input type="checkbox" id="chk_lagos" checked> Lagos
-</div>
-
-<div class="layer-item">
-<input type="checkbox" id="chk_uc" checked> Unidades de Conservação
-</div>
-
-<hr>
-
-<p style="font-size:12px">
-Mapa desenvolvido para análise territorial da Bacia do Rio Preguiças.
-</p>
-
-</div>
-
-<div id="map"></div>
-
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-
-var map = L.map('map').setView([-2.9,-42.8],9);
-
-var osm = L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-attribution:'© OpenStreetMap'
-}
-).addTo(map);
-
-var satelite = L.tileLayer(
-'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-{
-attribution:'Esri'
-}
-);
-
-var baseMaps = {
-"OpenStreetMap":osm,
-"Satélite":satelite
-};
-
-L.control.layers(baseMaps).addTo(map);
-
-
-
-let limiteLayer;
-let municipiosLayer;
-let riosLayer;
-let lagosLayer;
-let ucLayer;
-
-
-
-// Limite da bacia
-fetch("dados/limite_bacia.geojson")
-.then(res=>res.json())
-.then(data=>{
-
-limiteLayer = L.geoJSON(data,{
-style:{
-color:"#000",
-weight:3,
-fill:false
-}
-}).addTo(map);
-
-map.fitBounds(limiteLayer.getBounds());
-
-});
-
-
-
-// Municipios
-fetch("dados/municipios.geojson")
-.then(res=>res.json())
-.then(data=>{
-
-municipiosLayer = L.geoJSON(data,{
-style:{
-color:"#555",
-weight:1,
-fillOpacity:0
-},
-onEachFeature:function(feature,layer){
-
-if(feature.properties){
-
-let nome = feature.properties.nome || feature.properties.NOME || "Município";
-
-layer.bindPopup("<b>"+nome+"</b>");
-
-}
-
-}
-});
-
-});
-
-
-
-
-// Rios
-fetch("dados/corpo_dagua.geojson")
-.then(res=>res.json())
-.then(data=>{
-
-riosLayer = L.geoJSON(data,{
-style:{
-color:"#0077ff",
-weight:2
-}
-}).addTo(map);
-
-});
-
-
-
-
-// Lagos
-fetch("dados/lagos.geojson")
-.then(res=>res.json())
-.then(data=>{
-
-lagosLayer = L.geoJSON(data,{
-style:{
-color:"#0044aa",
-fillColor:"#66ccff",
-fillOpacity:0.7
-}
-}).addTo(map);
-
-});
-
-
-
-
-// Unidades de conservação
-fetch("dados/unidades_conservacao.geojson")
-.then(res=>res.json())
-.then(data=>{
-
-ucLayer = L.geoJSON(data,{
-style:{
-color:"#006400",
-fillColor:"#2ecc71",
-fillOpacity:0.5
-}
-}).addTo(map);
-
-});
-
-
-
-
-
-// CONTROLE SIDEBAR
-
-document.getElementById("chk_limite").onchange=function(){
-
-if(this.checked){
-map.addLayer(limiteLayer)
-}else{
-map.removeLayer(limiteLayer)
-}
-
-}
-
-document.getElementById("chk_municipios").onchange=function(){
-
-if(this.checked){
-map.addLayer(municipiosLayer)
-}else{
-map.removeLayer(municipiosLayer)
-}
-
-}
-
-document.getElementById("chk_rios").onchange=function(){
-
-if(this.checked){
-map.addLayer(riosLayer)
-}else{
-map.removeLayer(riosLayer)
-}
-
-}
-
-document.getElementById("chk_lagos").onchange=function(){
-
-if(this.checked){
-map.addLayer(lagosLayer)
-}else{
-map.removeLayer(lagosLayer)
-}
-
-}
-
-document.getElementById("chk_uc").onchange=function(){
-
-if(this.checked){
-map.addLayer(ucLayer)
-}else{
-map.removeLayer(ucLayer)
-}
-
-}
-
-</script>
-
+  <div class="container">
+    <aside class="sidebar" id="sidebar">
+      <button class="toggle-btn" id="toggleBtn" title="Recolher/Expandir menu">
+        <span id="toggleArrow">◀</span>
+      </button>
+
+      <div class="header">
+        <h1>Bacia do Rio Preguiças</h1>
+        <p>Mapa interativo das principais camadas ambientais</p>
+        <div class="dept-badge">Departamento de Estudos Ambientais</div>
+      </div>
+
+      <section class="panel">
+        <h2>Controle de Camadas</h2>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_limite" checked>
+          <label for="chk_limite">Limite da Bacia</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_municipios" checked>
+          <label for="chk_municipios">Municípios da Bacia</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_rios" checked>
+          <label for="chk_rios">Corpos d'água</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_lagos" checked>
+          <label for="chk_lagos">Lagos</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_uc" checked>
+          <label for="chk_uc">Unidades de Conservação</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Legenda</h2>
+
+        <div class="legend-item">
+          <span class="legend-box limite"></span>
+          <span>Limite da Bacia</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box municipios"></span>
+          <span>Municípios</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box rios"></span>
+          <span>Corpos d'água</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box lagos"></span>
+          <span>Lagos</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box uc"></span>
+          <span>Unidades de Conservação</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Controles</h2>
+
+        <div class="slider-group">
+          <label for="opacityRange">Transparência das camadas poligonais</label>
+          <input type="range" id="opacityRange" min="0" max="100" value="55">
+          <div class="slider-labels">
+            <span>Transparente</span>
+            <span>Opaco</span>
+          </div>
+        </div>
+
+        <div class="button-grid">
+          <button class="btn" id="btnVista">🗺 Ajustar Vista</button>
+          <button class="btn" id="btnBase">🛰 Alterar Mapa</button>
+          <button class="btn" id="btnExportar">💾 Exportar Limite</button>
+        </div>
+      </section>
+
+      <section class="panel status-panel">
+        <h2>Status</h2>
+        <div id="statusBox">
+          Carregando dados...
+        </div>
+      </section>
+    </aside>
+
+    <main id="map"></main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
