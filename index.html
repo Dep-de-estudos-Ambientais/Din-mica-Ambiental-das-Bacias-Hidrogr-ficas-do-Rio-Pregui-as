@@ -18,7 +18,7 @@
 
       <div class="header">
         <h1>Bacia do Rio Preguiças</h1>
-        <p>Mapa interativo das principais camadas ambientais</p>
+        <p>Mapa interativo das principais camadas ambientais e territoriais</p>
         <div class="dept-badge">Departamento de Estudos Ambientais</div>
       </div>
 
@@ -36,8 +36,13 @@
         </div>
 
         <div class="layer-item">
-          <input type="checkbox" id="chk_rios" checked>
-          <label for="chk_rios">Corpos d'água</label>
+          <input type="checkbox" id="chk_corpo_dagua" checked>
+          <label for="chk_corpo_dagua">Corpo d'água</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_hidrografia" checked>
+          <label for="chk_hidrografia">Hidrografia</label>
         </div>
 
         <div class="layer-item">
@@ -48,6 +53,21 @@
         <div class="layer-item">
           <input type="checkbox" id="chk_uc" checked>
           <label for="chk_uc">Unidades de Conservação</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_equipamentos" checked>
+          <label for="chk_equipamentos">Equipamentos Urbanos Atins</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_foz" checked>
+          <label for="chk_foz">Foz</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk_potencialidades" checked>
+          <label for="chk_potencialidades">Potencialidades</label>
         </div>
       </section>
 
@@ -65,8 +85,13 @@
         </div>
 
         <div class="legend-item">
-          <span class="legend-box rios"></span>
-          <span>Corpos d'água</span>
+          <span class="legend-box corpoagua"></span>
+          <span>Corpo d'água</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box hidrografia"></span>
+          <span>Hidrografia</span>
         </div>
 
         <div class="legend-item">
@@ -77,6 +102,21 @@
         <div class="legend-item">
           <span class="legend-box uc"></span>
           <span>Unidades de Conservação</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box equipamentos"></span>
+          <span>Equipamentos Urbanos</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box foz"></span>
+          <span>Foz</span>
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-box potencialidades"></span>
+          <span>Potencialidades</span>
         </div>
       </section>
 
@@ -101,9 +141,7 @@
 
       <section class="panel status-panel">
         <h2>Status</h2>
-        <div id="statusBox">
-          Carregando dados...
-        </div>
+        <div id="statusBox">Carregando dados...</div>
       </section>
     </aside>
 
