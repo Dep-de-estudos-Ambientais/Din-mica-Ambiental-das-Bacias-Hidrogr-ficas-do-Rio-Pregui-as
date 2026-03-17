@@ -32,6 +32,21 @@ document.addEventListener("DOMContentLoaded", () => {
   carregarCamadas();
 });
 
+function el(id) {
+  return document.getElementById(id);
+}
+
+function addSafeListener(id, eventName, handler) {
+  const element = el(id);
+
+  if (!element) {
+    console.warn(`Elemento com id "${id}" não foi encontrado no HTML.`);
+    return;
+  }
+
+  element.addEventListener(eventName, handler);
+}
+
 function initMap() {
   map = L.map("map", {
     zoomControl: true
@@ -71,59 +86,66 @@ function initMap() {
 }
 
 function initUI() {
-  const sidebar = document.getElementById("sidebar");
-  const toggleBtn = document.getElementById("toggleBtn");
-  const toggleArrow = document.getElementById("toggleArrow");
+  const sidebar = el("sidebar");
+  const toggleBtn = el("toggleBtn");
+  const toggleArrow = el("toggleArrow");
 
-  toggleBtn.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-    toggleArrow.textContent = sidebar.classList.contains("collapsed") ? "▶" : "◀";
-    setTimeout(() => map.invalidateSize(), 350);
-  });
+  if (sidebar && toggleBtn && toggleArrow) {
+    toggleBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
+      toggleArrow.textContent = sidebar.classList.contains("collapsed") ? "▶" : "◀";
 
-  document.getElementById("chk_limite").addEventListener("change", (e) => {
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 350);
+    });
+  } else {
+    console.warn("Sidebar/toggle não encontrados. Verifique: sidebar, toggleBtn, toggleArrow.");
+  }
+
+  addSafeListener("chk_limite", "change", (e) => {
     alternarLayer(limiteLayer, e.target.checked);
   });
 
-  document.getElementById("chk_municipios").addEventListener("change", (e) => {
+  addSafeListener("chk_municipios", "change", (e) => {
     alternarLayer(municipiosLayer, e.target.checked);
   });
 
-  document.getElementById("chk_corpo_dagua").addEventListener("change", (e) => {
+  addSafeListener("chk_corpo_dagua", "change", (e) => {
     alternarLayer(corpoDaguaLayer, e.target.checked);
   });
 
-  document.getElementById("chk_hidrografia").addEventListener("change", (e) => {
+  addSafeListener("chk_hidrografia", "change", (e) => {
     alternarLayer(hidrografiaLayer, e.target.checked);
   });
 
-  document.getElementById("chk_lagos").addEventListener("change", (e) => {
+  addSafeListener("chk_lagos", "change", (e) => {
     alternarLayer(lagosLayer, e.target.checked);
   });
 
-  document.getElementById("chk_uc").addEventListener("change", (e) => {
+  addSafeListener("chk_uc", "change", (e) => {
     alternarLayer(ucLayer, e.target.checked);
   });
 
-  document.getElementById("chk_equipamentos").addEventListener("change", (e) => {
+  addSafeListener("chk_equipamentos", "change", (e) => {
     alternarLayer(equipamentosLayer, e.target.checked);
   });
 
-  document.getElementById("chk_foz").addEventListener("change", (e) => {
+  addSafeListener("chk_foz", "change", (e) => {
     alternarLayer(fozLayer, e.target.checked);
   });
 
-  document.getElementById("chk_potencialidades").addEventListener("change", (e) => {
+  addSafeListener("chk_potencialidades", "change", (e) => {
     alternarLayer(potencialidadesLayer, e.target.checked);
   });
 
-  document.getElementById("opacityRange").addEventListener("input", (e) => {
+  addSafeListener("opacityRange", "input", (e) => {
     aplicarTransparencia(Number(e.target.value) / 100);
   });
 
-  document.getElementById("btnVista").addEventListener("click", ajustarVista);
-  document.getElementById("btnBase").addEventListener("click", alternarMapaBase);
-  document.getElementById("btnExportar").addEventListener("click", exportarLimite);
+  addSafeListener("btnVista", "click", ajustarVista);
+  addSafeListener("btnBase", "click", alternarMapaBase);
+  addSafeListener("btnExportar", "click", exportarLimite);
 }
 
 async function carregarCamadas() {
@@ -166,16 +188,13 @@ async function carregarCamadas() {
 
     setStatus(
       "✅ Dados carregados com sucesso!<br>" +
-      "<strong>Camadas ativas:</strong> limite, municípios, corpo d'água, hidrografia, lagos, unidades de conservação, equipamentos urbanos, foz e potencialidades.<br>" +
-      "• Use os checkboxes para ligar ou desligar camadas.<br>" +
-      "• Ajuste a transparência das camadas poligonais.<br>" +
-      "• Altere o mapa base quando necessário."
+      "<strong>Camadas ativas:</strong> limite, municípios, corpo d'água, hidrografia, lagos, unidades de conservação, equipamentos urbanos, foz e potencialidades."
     );
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao carregar camadas:", error);
     setStatus(
       "❌ Erro ao carregar uma ou mais camadas.<br>" +
-      "Confira se os nomes dos arquivos no GitHub estão exatamente iguais aos nomes usados no script."
+      "Abra o console para ver qual arquivo falhou."
     );
   }
 }
@@ -184,10 +203,18 @@ async function carregarGeoJSON(url) {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Erro ao carregar: ${url}`);
+    throw new Error(`Erro ao carregar ${url} | status ${response.status}`);
   }
 
-  return await response.json();
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error(`Arquivo não é JSON válido: ${url}`);
+    console.error(text.substring(0, 300));
+    throw err;
+  }
 }
 
 function criarLimiteLayer(data) {
@@ -412,21 +439,10 @@ function alternarLayer(layer, visible) {
 }
 
 function aplicarTransparencia(opacity) {
-  if (municipiosLayer) {
-    municipiosLayer.setStyle({ fillOpacity: opacity * 0.15 });
-  }
-
-  if (lagosLayer) {
-    lagosLayer.setStyle({ fillOpacity: opacity });
-  }
-
-  if (ucLayer) {
-    ucLayer.setStyle({ fillOpacity: opacity });
-  }
-
-  if (potencialidadesLayer) {
-    potencialidadesLayer.setStyle({ fillOpacity: opacity });
-  }
+  if (municipiosLayer) municipiosLayer.setStyle({ fillOpacity: opacity * 0.15 });
+  if (lagosLayer) lagosLayer.setStyle({ fillOpacity: opacity });
+  if (ucLayer) ucLayer.setStyle({ fillOpacity: opacity });
+  if (potencialidadesLayer) potencialidadesLayer.setStyle({ fillOpacity: opacity });
 }
 
 function ajustarVista() {
@@ -485,5 +501,6 @@ function exportarLimite() {
 }
 
 function setStatus(html) {
-  document.getElementById("statusBox").innerHTML = html;
+  const box = el("statusBox");
+  if (box) box.innerHTML = html;
 }
