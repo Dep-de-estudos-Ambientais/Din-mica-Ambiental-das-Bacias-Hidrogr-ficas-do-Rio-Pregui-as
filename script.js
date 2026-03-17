@@ -1,396 +1,286 @@
-let map;
-let osm, satellite, terrain;
-let currentBase = "osm";
-
-let limiteLayer = null;
-let municipiosLayer = null;
-let riosLayer = null;
-let lagosLayer = null;
-let ucLayer = null;
-
-const arquivos = {
-  limite: "dados/limite_bacia.geojson",
-  municipios: "dados/municipios.geojson",
-  rios: "dados/corpo_dagua.geojson",
-  lagos: "dados/lagos.geojson",
-  uc: "dados/unidades_conservacao.geojson"
-};
-
-const defaultPolygonOpacity = 0.55;
-
-document.addEventListener("DOMContentLoaded", () => {
-  initMap();
-  initUI();
-  carregarCamadas();
-});
-
-function initMap() {
-  map = L.map("map", {
-    zoomControl: true
-  }).setView([-2.95, -42.82], 9);
-
-  osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors"
-  });
-
-  satellite = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
-      attribution: "&copy; Esri"
-    }
-  );
-
-  terrain = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenTopoMap contributors"
-  });
-
-  osm.addTo(map);
-
-  L.control.scale({
-    metric: true,
-    imperial: false,
-    position: "bottomright"
-  }).addTo(map);
-
-  const north = L.control({ position: "topright" });
-  north.onAdd = function () {
-    const div = L.DomUtil.create("div");
-    div.className = "north-arrow";
-    div.innerHTML = "<span>↑</span><span>N</span>";
-    return div;
-  };
-  north.addTo(map);
+* {
+  box-sizing: border-box;
 }
 
-function initUI() {
-  const sidebar = document.getElementById("sidebar");
-  const toggleBtn = document.getElementById("toggleBtn");
-  const toggleArrow = document.getElementById("toggleArrow");
-
-  toggleBtn.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-    toggleArrow.textContent = sidebar.classList.contains("collapsed") ? "▶" : "◀";
-
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 350);
-  });
-
-  document.getElementById("chk_limite").addEventListener("change", (e) => {
-    alternarLayer(limiteLayer, e.target.checked);
-  });
-
-  document.getElementById("chk_municipios").addEventListener("change", (e) => {
-    alternarLayer(municipiosLayer, e.target.checked);
-  });
-
-  document.getElementById("chk_rios").addEventListener("change", (e) => {
-    alternarLayer(riosLayer, e.target.checked);
-  });
-
-  document.getElementById("chk_lagos").addEventListener("change", (e) => {
-    alternarLayer(lagosLayer, e.target.checked);
-  });
-
-  document.getElementById("chk_uc").addEventListener("change", (e) => {
-    alternarLayer(ucLayer, e.target.checked);
-  });
-
-  document.getElementById("opacityRange").addEventListener("input", (e) => {
-    const opacity = Number(e.target.value) / 100;
-    aplicarTransparencia(opacity);
-  });
-
-  document.getElementById("btnVista").addEventListener("click", ajustarVista);
-  document.getElementById("btnBase").addEventListener("click", alternarMapaBase);
-  document.getElementById("btnExportar").addEventListener("click", exportarLimite);
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #eef2ef;
 }
 
-async function carregarCamadas() {
-  try {
-    setStatus("🔄 Carregando camadas...");
-
-    const [
-      limiteData,
-      municipiosData,
-      riosData,
-      lagosData,
-      ucData
-    ] = await Promise.all([
-      carregarGeoJSON(arquivos.limite),
-      carregarGeoJSON(arquivos.municipios),
-      carregarGeoJSON(arquivos.rios),
-      carregarGeoJSON(arquivos.lagos),
-      carregarGeoJSON(arquivos.uc)
-    ]);
-
-    criarLimiteLayer(limiteData);
-    criarMunicipiosLayer(municipiosData);
-    criarRiosLayer(riosData);
-    criarLagosLayer(lagosData);
-    criarUCLayer(ucData);
-
-    ajustarVista();
-
-    setStatus(
-      "✅ Dados carregados com sucesso!<br>" +
-      "<strong>Camadas:</strong> limite, municípios, corpos d'água, lagos e unidades de conservação.<br>" +
-      "• Use os checkboxes para ligar ou desligar camadas.<br>" +
-      "• Ajuste a transparência das camadas poligonais.<br>" +
-      "• Use o botão lateral para recolher o menu."
-    );
-  } catch (error) {
-    console.error(error);
-    setStatus(
-      "❌ Erro ao carregar os arquivos GeoJSON.<br>" +
-      "Verifique se os nomes dos arquivos e a pasta <strong>dados</strong> estão corretos."
-    );
-  }
+.container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 
-async function carregarGeoJSON(url) {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Erro ao carregar: ${url}`);
-  }
-
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.includes("application/json") && !contentType.includes("geo+json") && !contentType.includes("text/plain")) {
-    console.warn(`Tipo de conteúdo inesperado em ${url}: ${contentType}`);
-  }
-
-  return await response.json();
+.sidebar {
+  width: 360px;
+  min-width: 360px;
+  background: linear-gradient(180deg, #edf3ef 0%, #dfe9e2 100%);
+  border-right: 3px solid #2d5d34;
+  overflow-y: auto;
+  position: relative;
+  transition: margin-left 0.35s ease;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.12);
+  z-index: 1000;
 }
 
-function criarLimiteLayer(data) {
-  limiteLayer = L.geoJSON(data, {
-    style: {
-      color: "#000000",
-      weight: 3,
-      opacity: 1,
-      fillOpacity: 0
-    },
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(criarPopupSimples("Limite da Bacia", feature.properties));
-    }
-  }).addTo(map);
+.sidebar.collapsed {
+  margin-left: -320px;
 }
 
-function criarMunicipiosLayer(data) {
-  municipiosLayer = L.geoJSON(data, {
-    style: {
-      color: "#777777",
-      weight: 1.2,
-      opacity: 0.9,
-      fillColor: "#d9d9d9",
-      fillOpacity: 0.08
-    },
-    onEachFeature: (feature, layer) => {
-      const props = feature.properties || {};
-      const nome = props.nome || props.NOME || props.name || props.NAME || "Município";
-
-      layer.bindPopup(`
-        <div class="popup-title">${nome}</div>
-        <div class="popup-line"><strong>Tipo:</strong> Município da bacia</div>
-      `);
-    }
-  }).addTo(map);
+.toggle-btn {
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 84px;
+  border: 2px solid #fff;
+  border-radius: 0 22px 22px 0;
+  background: linear-gradient(135deg, #2d5d34, #4d8755);
+  color: #fff;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.22);
+  z-index: 1001;
 }
 
-function criarRiosLayer(data) {
-  riosLayer = L.geoJSON(data, {
-    style: {
-      color: "#187bff",
-      weight: 2,
-      opacity: 0.95
-    },
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(criarPopupSimples("Corpo d'água", feature.properties));
-    }
-  }).addTo(map);
+.toggle-btn:hover {
+  background: linear-gradient(135deg, #214928, #396c42);
 }
 
-function criarLagosLayer(data) {
-  lagosLayer = L.geoJSON(data, {
-    style: {
-      color: "#2f7fb5",
-      weight: 1,
-      opacity: 1,
-      fillColor: "#73c8ff",
-      fillOpacity: defaultPolygonOpacity
-    },
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(criarPopupSimples("Lago", feature.properties));
-    }
-  }).addTo(map);
+.header {
+  background: linear-gradient(135deg, #2d5d34 0%, #46794d 55%, #2d5d34 100%);
+  color: #fff;
+  padding: 26px 20px;
+  text-align: center;
 }
 
-function criarUCLayer(data) {
-  ucLayer = L.geoJSON(data, {
-    style: (feature) => {
-      const props = feature.properties || {};
-      const categoria = (
-        props.categoria ||
-        props.CATEGORIA ||
-        props.grupo ||
-        props.GRUPO ||
-        ""
-      ).toString().toLowerCase();
-
-      let fill = "#2ecc71";
-
-      if (categoria.includes("proteção integral") || categoria.includes("protecao integral")) {
-        fill = "#1f9d55";
-      } else if (categoria.includes("uso sustentável") || categoria.includes("uso sustentavel")) {
-        fill = "#52c878";
-      }
-
-      return {
-        color: "#1d6b3f",
-        weight: 1.5,
-        opacity: 1,
-        fillColor: fill,
-        fillOpacity: defaultPolygonOpacity
-      };
-    },
-    onEachFeature: (feature, layer) => {
-      const props = feature.properties || {};
-      const nome = props.nome || props.NOME || props.name || props.NAME || "Unidade de Conservação";
-      const categoria = props.categoria || props.CATEGORIA || props.grupo || props.GRUPO || "Não informado";
-
-      layer.bindPopup(`
-        <div class="popup-title">${nome}</div>
-        <div class="popup-line"><strong>Tipo:</strong> Unidade de Conservação</div>
-        <div class="popup-line"><strong>Categoria:</strong> ${categoria}</div>
-      `);
-    }
-  }).addTo(map);
+.header h1 {
+  margin: 0 0 8px 0;
+  font-size: 2rem;
+  line-height: 1.1;
 }
 
-function criarPopupSimples(tituloPadrao, props = {}) {
-  const keys = Object.keys(props || {}).filter((key) => {
-    const value = props[key];
-    return value !== null && value !== undefined && value !== "";
-  });
+.header p {
+  margin: 0;
+  font-size: 0.96rem;
+  opacity: 0.95;
+}
 
-  let titulo =
-    props.nome ||
-    props.NOME ||
-    props.name ||
-    props.NAME ||
-    tituloPadrao;
+.dept-badge {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  font-size: 0.87rem;
+}
 
-  let html = `<div class="popup-title">${titulo}</div>`;
+.panel {
+  margin: 14px;
+  background: rgba(255,255,255,0.84);
+  border: 1px solid #cfdcd1;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
 
-  if (keys.length === 0) {
-    html += `<div class="popup-line"><strong>Tipo:</strong> ${tituloPadrao}</div>`;
-    return html;
+.panel h2 {
+  margin: 0 0 14px 0;
+  color: #28522e;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #4c8152;
+  padding-bottom: 8px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+}
+
+.layer-item input[type="checkbox"] {
+  transform: scale(1.15);
+  accent-color: #2d5d34;
+}
+
+.layer-item label {
+  color: #2d4f31;
+  cursor: pointer;
+  font-size: 0.98rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #2d4f31;
+  font-size: 0.96rem;
+}
+
+.legend-box {
+  width: 24px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.35);
+  display: inline-block;
+}
+
+.legend-box.limite {
+  background: #000000;
+}
+
+.legend-box.municipios {
+  background: #d4d4d4;
+}
+
+.legend-box.corpoagua {
+  background: #0d6efd;
+}
+
+.legend-box.hidrografia {
+  background: #47b5ff;
+}
+
+.legend-box.lagos {
+  background: #8ed8ff;
+}
+
+.legend-box.uc {
+  background: #2ecc71;
+}
+
+.legend-box.equipamentos {
+  background: #ff8c00;
+}
+
+.legend-box.foz {
+  background: #7b2cbf;
+}
+
+.legend-box.potencialidades {
+  background: #e63946;
+}
+
+.slider-group label {
+  display: block;
+  margin-bottom: 10px;
+  color: #2d4f31;
+  font-weight: 600;
+}
+
+.slider-group input[type="range"] {
+  width: 100%;
+  accent-color: #2d5d34;
+}
+
+.slider-labels {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: #5b7b60;
+}
+
+.button-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn {
+  background: linear-gradient(135deg, #2d5d34, #477c4f);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #224729, #37663e);
+}
+
+.status-panel #statusBox {
+  color: #2e4c33;
+  font-size: 0.96rem;
+  line-height: 1.45;
+  background: #f7fbf7;
+  border: 1px solid #b8d3bc;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+#map {
+  flex: 1;
+  height: 100vh;
+  min-width: 0;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+}
+
+.popup-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #25512d;
+  margin-bottom: 8px;
+}
+
+.popup-line {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #334a36;
+}
+
+.north-arrow {
+  background: #ffffff;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid #222;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.north-arrow span:first-child {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.north-arrow span:last-child {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 300px;
+    min-width: 300px;
   }
 
-  let count = 0;
-  for (const key of keys) {
-    if (count >= 8) break;
-    html += `<div class="popup-line"><strong>${formatarCampo(key)}:</strong> ${props[key]}</div>`;
-    count++;
+  .sidebar.collapsed {
+    margin-left: -260px;
   }
 
-  return html;
-}
-
-function formatarCampo(campo) {
-  return campo
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function alternarLayer(layer, visible) {
-  if (!layer) return;
-
-  if (visible) {
-    if (!map.hasLayer(layer)) map.addLayer(layer);
-  } else {
-    if (map.hasLayer(layer)) map.removeLayer(layer);
+  .header h1 {
+    font-size: 1.6rem;
   }
-}
-
-function aplicarTransparencia(opacity) {
-  if (municipiosLayer) {
-    municipiosLayer.setStyle({
-      fillOpacity: opacity * 0.15
-    });
-  }
-
-  if (lagosLayer) {
-    lagosLayer.setStyle({
-      fillOpacity: opacity
-    });
-  }
-
-  if (ucLayer) {
-    ucLayer.setStyle({
-      fillOpacity: opacity
-    });
-  }
-}
-
-function ajustarVista() {
-  const layers = [];
-
-  if (limiteLayer) layers.push(limiteLayer);
-  else {
-    if (riosLayer) layers.push(riosLayer);
-    if (lagosLayer) layers.push(lagosLayer);
-    if (ucLayer) layers.push(ucLayer);
-  }
-
-  if (layers.length === 0) return;
-
-  const group = new L.featureGroup(layers);
-  const bounds = group.getBounds();
-
-  if (bounds.isValid()) {
-    map.fitBounds(bounds, { padding: [20, 20] });
-  }
-}
-
-function alternarMapaBase() {
-  if (currentBase === "osm") {
-    map.removeLayer(osm);
-    terrain.addTo(map);
-    currentBase = "terrain";
-  } else if (currentBase === "terrain") {
-    map.removeLayer(terrain);
-    satellite.addTo(map);
-    currentBase = "satellite";
-  } else {
-    map.removeLayer(satellite);
-    osm.addTo(map);
-    currentBase = "osm";
-  }
-}
-
-function exportarLimite() {
-  if (!limiteLayer) {
-    alert("A camada de limite ainda não foi carregada.");
-    return;
-  }
-
-  const geojson = limiteLayer.toGeoJSON();
-  const dataStr = JSON.stringify(geojson, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "limite_bacia_rio_preguicas.geojson";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
-}
-
-function setStatus(html) {
-  document.getElementById("statusBox").innerHTML = html;
 }
