@@ -18,12 +18,12 @@ const arquivos = {
   limite: "dados/limite_bacia.geojson",
   municipios: "dados/municipios.geojson",
   corpoDagua: "dados/corpo_dagua.geojson",
-  hidrografia: "dados/Hidrografia.geojson",
+  hidrografia: "dados/hidrografia.geojson",
   lagos: "dados/lagos.geojson",
   uc: "dados/unidades_conservacao.geojson",
-  equipamentos: "dados/Equipamentos Urbanos Atins.geojson",
-  foz: "dados/Foz.geojson",
-  potencialidades: "dados/Potencialidades.geojson"
+  equipamentos: "dados/equipamentos_urbanos_atins.geojson",
+  foz: "dados/foz.geojson",
+  potencialidades: "dados/potencialidades.geojson"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
