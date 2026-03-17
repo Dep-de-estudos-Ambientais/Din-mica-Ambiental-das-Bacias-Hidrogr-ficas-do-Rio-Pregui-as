@@ -95,7 +95,7 @@ html, body {
 .panel h2 {
   margin: 0 0 14px 0;
   color: #28522e;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   border-bottom: 2px solid #4c8152;
   padding-bottom: 8px;
 }
@@ -115,7 +115,7 @@ html, body {
 .layer-item label {
   color: #2d4f31;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.98rem;
 }
 
 .legend-item {
@@ -140,19 +140,35 @@ html, body {
 }
 
 .legend-box.municipios {
-  background: #b4b4b4;
+  background: #d4d4d4;
 }
 
-.legend-box.rios {
-  background: #1f78ff;
+.legend-box.corpoagua {
+  background: #0d6efd;
+}
+
+.legend-box.hidrografia {
+  background: #47b5ff;
 }
 
 .legend-box.lagos {
-  background: #72c8ff;
+  background: #8ed8ff;
 }
 
 .legend-box.uc {
   background: #2ecc71;
+}
+
+.legend-box.equipamentos {
+  background: #ff8c00;
+}
+
+.legend-box.foz {
+  background: #7b2cbf;
+}
+
+.legend-box.potencialidades {
+  background: #e63946;
 }
 
 .slider-group label {
