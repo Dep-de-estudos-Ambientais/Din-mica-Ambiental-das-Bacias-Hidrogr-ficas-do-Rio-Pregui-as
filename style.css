@@ -135,41 +135,18 @@ html, body {
   display: inline-block;
 }
 
-.legend-box.limite {
-  background: #000000;
-}
-
-.legend-box.municipios {
-  background: #d4d4d4;
-}
-
-.legend-box.corpoagua {
-  background: #0d6efd;
-}
-
-.legend-box.hidrografia {
-  background: #47b5ff;
-}
-
-.legend-box.lagos {
-  background: #8ed8ff;
-}
-
-.legend-box.uc {
-  background: #2ecc71;
-}
-
-.legend-box.equipamentos {
-  background: #ff8c00;
-}
-
-.legend-box.foz {
-  background: #7b2cbf;
-}
-
-.legend-box.potencialidades {
-  background: #e63946;
-}
+.legend-box.limite { background: #000000; }
+.legend-box.municipios { background: #d4d4d4; }
+.legend-box.corpoagua { background: #0d6efd; }
+.legend-box.hidrografia { background: #47b5ff; }
+.legend-box.lagos { background: #8ed8ff; }
+.legend-box.uc { background: #2ecc71; }
+.legend-box.equipamentos { background: #ff8c00; }
+.legend-box.foz { background: #7b2cbf; }
+.legend-box.potencialidades { background: #e63946; }
+.legend-box.geologia { background: #8c6d31; }
+.legend-box.geomorfologia { background: #c994c7; }
+.legend-box.solos { background: #b15928; }
 
 .slider-group label {
   display: block;
@@ -268,6 +245,23 @@ html, body {
 .north-arrow span:last-child {
   font-size: 0.72rem;
   line-height: 1;
+}
+
+.map-label-rio {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #1d4f91;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.9);
+}
+
+.map-label-lago {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #1d4f91;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.95);
 }
 
 @media (max-width: 900px) {
