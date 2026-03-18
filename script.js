@@ -11,6 +11,9 @@ let ucLayer = null;
 let equipamentosLayer = null;
 let fozLayer = null;
 let potencialidadesLayer = null;
+let geologiaLayer = null;
+let geomorfologiaLayer = null;
+let solosLayer = null;
 
 const defaultPolygonOpacity = 0.55;
 
@@ -23,7 +26,10 @@ const arquivos = {
   uc: "dados/unidades_conservacao.geojson",
   equipamentos: "dados/equipamentos_urbanos_atins.geojson",
   foz: "dados/foz.geojson",
-  potencialidades: "dados/potencialidades.geojson"
+  potencialidades: "dados/potencialidades.geojson",
+  geologia: "dados/geologia.geojson",
+  geomorfologia: "dados/geomorfologia.geojson",
+  solos: "dados/solos.geojson"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -99,45 +105,20 @@ function initUI() {
         map.invalidateSize();
       }, 350);
     });
-  } else {
-    console.warn("Sidebar/toggle não encontrados. Verifique: sidebar, toggleBtn, toggleArrow.");
   }
 
-  addSafeListener("chk_limite", "change", (e) => {
-    alternarLayer(limiteLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_municipios", "change", (e) => {
-    alternarLayer(municipiosLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_corpo_dagua", "change", (e) => {
-    alternarLayer(corpoDaguaLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_hidrografia", "change", (e) => {
-    alternarLayer(hidrografiaLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_lagos", "change", (e) => {
-    alternarLayer(lagosLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_uc", "change", (e) => {
-    alternarLayer(ucLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_equipamentos", "change", (e) => {
-    alternarLayer(equipamentosLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_foz", "change", (e) => {
-    alternarLayer(fozLayer, e.target.checked);
-  });
-
-  addSafeListener("chk_potencialidades", "change", (e) => {
-    alternarLayer(potencialidadesLayer, e.target.checked);
-  });
+  addSafeListener("chk_limite", "change", (e) => alternarLayer(limiteLayer, e.target.checked));
+  addSafeListener("chk_municipios", "change", (e) => alternarLayer(municipiosLayer, e.target.checked));
+  addSafeListener("chk_corpo_dagua", "change", (e) => alternarLayer(corpoDaguaLayer, e.target.checked));
+  addSafeListener("chk_hidrografia", "change", (e) => alternarLayer(hidrografiaLayer, e.target.checked));
+  addSafeListener("chk_lagos", "change", (e) => alternarLayer(lagosLayer, e.target.checked));
+  addSafeListener("chk_uc", "change", (e) => alternarLayer(ucLayer, e.target.checked));
+  addSafeListener("chk_equipamentos", "change", (e) => alternarLayer(equipamentosLayer, e.target.checked));
+  addSafeListener("chk_foz", "change", (e) => alternarLayer(fozLayer, e.target.checked));
+  addSafeListener("chk_potencialidades", "change", (e) => alternarLayer(potencialidadesLayer, e.target.checked));
+  addSafeListener("chk_geologia", "change", (e) => alternarLayer(geologiaLayer, e.target.checked));
+  addSafeListener("chk_geomorfologia", "change", (e) => alternarLayer(geomorfologiaLayer, e.target.checked));
+  addSafeListener("chk_solos", "change", (e) => alternarLayer(solosLayer, e.target.checked));
 
   addSafeListener("opacityRange", "input", (e) => {
     aplicarTransparencia(Number(e.target.value) / 100);
@@ -152,17 +133,7 @@ async function carregarCamadas() {
   try {
     setStatus("🔄 Carregando camadas...");
 
-    const [
-      limiteData,
-      municipiosData,
-      corpoDaguaData,
-      hidrografiaData,
-      lagosData,
-      ucData,
-      equipamentosData,
-      fozData,
-      potencialidadesData
-    ] = await Promise.all([
+    const resultados = await Promise.allSettled([
       carregarGeoJSON(arquivos.limite),
       carregarGeoJSON(arquivos.municipios),
       carregarGeoJSON(arquivos.corpoDagua),
@@ -171,31 +142,64 @@ async function carregarCamadas() {
       carregarGeoJSON(arquivos.uc),
       carregarGeoJSON(arquivos.equipamentos),
       carregarGeoJSON(arquivos.foz),
-      carregarGeoJSON(arquivos.potencialidades)
+      carregarGeoJSON(arquivos.potencialidades),
+      carregarGeoJSON(arquivos.geologia),
+      carregarGeoJSON(arquivos.geomorfologia),
+      carregarGeoJSON(arquivos.solos)
     ]);
 
-    criarLimiteLayer(limiteData);
-    criarMunicipiosLayer(municipiosData);
-    criarCorpoDaguaLayer(corpoDaguaData);
-    criarHidrografiaLayer(hidrografiaData);
-    criarLagosLayer(lagosData);
-    criarUCLayer(ucData);
-    criarEquipamentosLayer(equipamentosData);
-    criarFozLayer(fozData);
-    criarPotencialidadesLayer(potencialidadesData);
+    const nomes = [
+      "limite",
+      "municipios",
+      "corpoDagua",
+      "hidrografia",
+      "lagos",
+      "uc",
+      "equipamentos",
+      "foz",
+      "potencialidades",
+      "geologia",
+      "geomorfologia",
+      "solos"
+    ];
+
+    const dados = {};
+
+    resultados.forEach((resultado, i) => {
+      const nome = nomes[i];
+      if (resultado.status === "fulfilled") {
+        dados[nome] = resultado.value;
+      } else {
+        console.error(`Falha ao carregar camada: ${nome}`, resultado.reason);
+      }
+    });
+
+    if (dados.limite) criarLimiteLayer(dados.limite);
+    if (dados.municipios) criarMunicipiosLayer(dados.municipios);
+    if (dados.corpoDagua) criarCorpoDaguaLayer(dados.corpoDagua);
+    if (dados.hidrografia) criarHidrografiaLayer(dados.hidrografia);
+    if (dados.lagos) criarLagosLayer(dados.lagos);
+    if (dados.uc) criarUCLayer(dados.uc);
+    if (dados.equipamentos) criarEquipamentosLayer(dados.equipamentos);
+    if (dados.foz) criarFozLayer(dados.foz);
+    if (dados.potencialidades) criarPotencialidadesLayer(dados.potencialidades);
+    if (dados.geologia) criarGeologiaLayer(dados.geologia);
+    if (dados.geomorfologia) criarGeomorfologiaLayer(dados.geomorfologia);
+    if (dados.solos) criarSolosLayer(dados.solos);
 
     ajustarVista();
 
+    const carregadas = Object.keys(dados).length;
     setStatus(
-      "✅ Dados carregados com sucesso!<br>" +
-      "<strong>Camadas ativas:</strong> limite, municípios, corpo d'água, hidrografia, lagos, unidades de conservação, equipamentos urbanos, foz e potencialidades."
+      `✅ ${carregadas} camada(s) carregada(s) com sucesso.<br>` +
+      `• Use os checkboxes para ligar ou desligar camadas.<br>` +
+      `• Ajuste a transparência para polígonos.<br>` +
+      `• Rios e lagos usam rótulos pela coluna <strong>nome</strong>.`
     );
+
   } catch (error) {
-    console.error("Erro ao carregar camadas:", error);
-    setStatus(
-      "❌ Erro ao carregar uma ou mais camadas.<br>" +
-      "Abra o console para ver qual arquivo falhou."
-    );
+    console.error("Erro geral ao carregar camadas:", error);
+    setStatus("❌ Ocorreu um erro ao carregar as camadas.");
   }
 }
 
@@ -203,7 +207,7 @@ async function carregarGeoJSON(url) {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Erro ao carregar ${url} | status ${response.status}`);
+    throw new Error(`Erro ao carregar: ${url}`);
   }
 
   const text = await response.text();
@@ -211,8 +215,8 @@ async function carregarGeoJSON(url) {
   try {
     return JSON.parse(text);
   } catch (err) {
-    console.error(`Arquivo não é JSON válido: ${url}`);
-    console.error(text.substring(0, 300));
+    console.error(`Arquivo inválido como JSON: ${url}`);
+    console.error(text.substring(0, 400));
     throw err;
   }
 }
@@ -243,6 +247,7 @@ function criarMunicipiosLayer(data) {
     onEachFeature: (feature, layer) => {
       const props = feature.properties || {};
       const nome = props.nome || props.NOME || props.name || props.NAME || "Município";
+
       layer.bindPopup(`
         <div class="popup-title">${nome}</div>
         <div class="popup-line"><strong>Tipo:</strong> Município da bacia</div>
@@ -272,7 +277,22 @@ function criarHidrografiaLayer(data) {
       opacity: 0.9
     },
     onEachFeature: (feature, layer) => {
-      layer.bindPopup(criarPopupSimples("Hidrografia", feature.properties));
+      const props = feature.properties || {};
+      const nome = props.nome || props.NOME || "";
+
+      layer.bindPopup(criarPopupSimples("Hidrografia", props));
+
+      if (nome && typeof layer.setText === "function") {
+        layer.setText(nome, {
+          repeat: false,
+          center: true,
+          offset: -3,
+          orientation: 0,
+          attributes: {
+            class: "map-label-rio"
+          }
+        });
+      }
     }
   }).addTo(map);
 }
@@ -287,7 +307,18 @@ function criarLagosLayer(data) {
       fillOpacity: defaultPolygonOpacity
     },
     onEachFeature: (feature, layer) => {
-      layer.bindPopup(criarPopupSimples("Lago", feature.properties));
+      const props = feature.properties || {};
+      const nome = props.nome || props.NOME || "";
+
+      layer.bindPopup(criarPopupSimples("Lago", props));
+
+      if (nome) {
+        layer.bindTooltip(nome, {
+          permanent: true,
+          direction: "center",
+          className: "map-label-lago"
+        });
+      }
     }
   }).addTo(map);
 }
@@ -368,26 +399,203 @@ function criarFozLayer(data) {
   }).addTo(map);
 }
 
+/* -------------------------
+   POTENCIALIDADES
+   Classificação por FolderPath
+------------------------- */
+const coresPotencialidades = {
+  turismo: "#e41a1c",
+  pesca: "#377eb8",
+  agricultura: "#4daf4a",
+  conservacao: "#984ea3",
+  infraestrutura: "#ff7f00",
+  default: "#e63946"
+};
+
+function corPotencialidade(folderPath) {
+  if (!folderPath) return coresPotencialidades.default;
+
+  const valor = String(folderPath).toLowerCase();
+
+  if (valor.includes("turismo")) return coresPotencialidades.turismo;
+  if (valor.includes("pesca")) return coresPotencialidades.pesca;
+  if (valor.includes("agric")) return coresPotencialidades.agricultura;
+  if (valor.includes("conserv")) return coresPotencialidades.conservacao;
+  if (valor.includes("infra")) return coresPotencialidades.infraestrutura;
+
+  return coresPotencialidades.default;
+}
+
 function criarPotencialidadesLayer(data) {
   potencialidadesLayer = L.geoJSON(data, {
-    style: {
-      color: "#b22222",
-      weight: 1.4,
-      opacity: 1,
-      fillColor: "#e63946",
-      fillOpacity: defaultPolygonOpacity
+    style: (feature) => {
+      const props = feature.properties || {};
+      const classe = props.FolderPath || props.folderpath || "";
+      const cor = corPotencialidade(classe);
+
+      return {
+        color: cor,
+        weight: 1.4,
+        opacity: 1,
+        fillColor: cor,
+        fillOpacity: defaultPolygonOpacity
+      };
     },
     pointToLayer: (feature, latlng) => {
+      const props = feature.properties || {};
+      const classe = props.FolderPath || props.folderpath || "";
+      const cor = corPotencialidade(classe);
+
       return L.circleMarker(latlng, {
         radius: 6,
         color: "#ffffff",
         weight: 1.5,
-        fillColor: "#e63946",
+        fillColor: cor,
         fillOpacity: 0.95
       });
     },
     onEachFeature: (feature, layer) => {
       layer.bindPopup(criarPopupSimples("Potencialidade", feature.properties));
+    }
+  }).addTo(map);
+}
+
+/* -------------------------
+   GEOLOGIA
+   Classificação por NOME_UNIDA
+   Troque depois pelas cores oficiais
+------------------------- */
+const coresGeologia = {
+  "Formação Barreiras": "#d8b365",
+  "Depósitos Aluvionares": "#f6e8c3",
+  "Sedimentos Recentes": "#c7eae5",
+  default: "#8c6d31"
+};
+
+function corGeologia(nome) {
+  return coresGeologia[nome] || coresGeologia.default;
+}
+
+function criarGeologiaLayer(data) {
+  geologiaLayer = L.geoJSON(data, {
+    style: (feature) => {
+      const props = feature.properties || {};
+      const classe = props.NOME_UNIDA || "default";
+      const cor = corGeologia(classe);
+
+      return {
+        color: "#5c4033",
+        weight: 1,
+        opacity: 1,
+        fillColor: cor,
+        fillOpacity: defaultPolygonOpacity
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const props = feature.properties || {};
+      const nome = props.NOME_UNIDA || "Geologia";
+
+      layer.bindPopup(`
+        <div class="popup-title">${nome}</div>
+        <div class="popup-line"><strong>Tipo:</strong> Unidade geológica</div>
+      `);
+    }
+  }).addTo(map);
+}
+
+/* -------------------------
+   GEOMORFOLOGIA
+   Classificação por NOME_UNIDA
+   Troque depois pelas cores oficiais
+------------------------- */
+const coresGeomorfologia = {
+  "Planícies Fluviomarinhas": "#9ecae1",
+  "Tabuleiros": "#fdae6b",
+  "Colinas": "#c994c7",
+  "Vales": "#74c476",
+  default: "#c994c7"
+};
+
+function corGeomorfologia(nome) {
+  return coresGeomorfologia[nome] || coresGeomorfologia.default;
+}
+
+function criarGeomorfologiaLayer(data) {
+  geomorfologiaLayer = L.geoJSON(data, {
+    style: (feature) => {
+      const props = feature.properties || {};
+      const classe = props.NOME_UNIDA || "default";
+      const cor = corGeomorfologia(classe);
+
+      return {
+        color: "#6b486b",
+        weight: 1,
+        opacity: 1,
+        fillColor: cor,
+        fillOpacity: defaultPolygonOpacity
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const props = feature.properties || {};
+      const nome = props.NOME_UNIDA || "Geomorfologia";
+
+      layer.bindPopup(`
+        <div class="popup-title">${nome}</div>
+        <div class="popup-line"><strong>Tipo:</strong> Unidade geomorfológica</div>
+      `);
+    }
+  }).addTo(map);
+}
+
+/* -------------------------
+   SOLOS
+   Classificação por legenda
+   Troque depois pelas cores oficiais
+------------------------- */
+const coresSolos = {
+  Latossolo: "#a6611a",
+  Argissolo: "#dfc27d",
+  Neossolo: "#80cdc1",
+  Gleissolo: "#018571",
+  default: "#b15928"
+};
+
+function corSolo(nome) {
+  if (!nome) return coresSolos.default;
+
+  const valor = String(nome).toLowerCase();
+
+  if (valor.includes("latossolo")) return coresSolos.Latossolo;
+  if (valor.includes("argissolo")) return coresSolos.Argissolo;
+  if (valor.includes("neossolo")) return coresSolos.Neossolo;
+  if (valor.includes("gleissolo")) return coresSolos.Gleissolo;
+
+  return coresSolos.default;
+}
+
+function criarSolosLayer(data) {
+  solosLayer = L.geoJSON(data, {
+    style: (feature) => {
+      const props = feature.properties || {};
+      const classe = props.legenda || props.LEGENDA || "";
+      const cor = corSolo(classe);
+
+      return {
+        color: "#6b3d1f",
+        weight: 1,
+        opacity: 1,
+        fillColor: cor,
+        fillOpacity: defaultPolygonOpacity
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const props = feature.properties || {};
+      const nome = props.legenda || props.LEGENDA || "Solo";
+
+      layer.bindPopup(`
+        <div class="popup-title">${nome}</div>
+        <div class="popup-line"><strong>Tipo:</strong> Classe de solo</div>
+      `);
     }
   }).addTo(map);
 }
@@ -403,6 +611,9 @@ function criarPopupSimples(tituloPadrao, props = {}) {
     props.NOME ||
     props.name ||
     props.NAME ||
+    props.NOME_UNIDA ||
+    props.legenda ||
+    props.LEGENDA ||
     tituloPadrao;
 
   let html = `<div class="popup-title">${titulo}</div>`;
@@ -443,15 +654,26 @@ function aplicarTransparencia(opacity) {
   if (lagosLayer) lagosLayer.setStyle({ fillOpacity: opacity });
   if (ucLayer) ucLayer.setStyle({ fillOpacity: opacity });
   if (potencialidadesLayer) potencialidadesLayer.setStyle({ fillOpacity: opacity });
+  if (geologiaLayer) geologiaLayer.setStyle({ fillOpacity: opacity });
+  if (geomorfologiaLayer) geomorfologiaLayer.setStyle({ fillOpacity: opacity });
+  if (solosLayer) solosLayer.setStyle({ fillOpacity: opacity });
 }
 
 function ajustarVista() {
   const layers = [];
 
   if (limiteLayer) layers.push(limiteLayer);
-  if (fozLayer) layers.push(fozLayer);
+  if (municipiosLayer) layers.push(municipiosLayer);
+  if (corpoDaguaLayer) layers.push(corpoDaguaLayer);
+  if (hidrografiaLayer) layers.push(hidrografiaLayer);
+  if (lagosLayer) layers.push(lagosLayer);
+  if (ucLayer) layers.push(ucLayer);
   if (equipamentosLayer) layers.push(equipamentosLayer);
+  if (fozLayer) layers.push(fozLayer);
   if (potencialidadesLayer) layers.push(potencialidadesLayer);
+  if (geologiaLayer) layers.push(geologiaLayer);
+  if (geomorfologiaLayer) layers.push(geomorfologiaLayer);
+  if (solosLayer) layers.push(solosLayer);
 
   if (layers.length === 0) return;
 
